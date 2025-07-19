@@ -35,7 +35,7 @@ function groklink_enqueue_scripts() {
         'grok-filter-script',
         plugin_dir_url( __FILE__ ) . 'js/grok-filter.js',
         array(),
-        '1.0.0',
+        '1.1.2',
         true // Load in the footer
     );
 }
