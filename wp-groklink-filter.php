@@ -24,7 +24,7 @@ function groklink_filter_the_content( $content ) {
     $pattern = '/<(grok[\w:-]*)(?:[^>]*)>.*?<\/\1>/is';
     return preg_replace( $pattern, '', $content );
 }
-add_filter( 'the_content', 'groklink_filter_the_content' );
+add_filter( 'the_content', 'groklink_filter_the_content', 999 );
 
 /**
  * Enqueues the JavaScript file for iframe filtering.
