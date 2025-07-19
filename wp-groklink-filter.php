@@ -25,6 +25,7 @@ function groklink_filter_the_content( $content ) {
     return preg_replace( $pattern, '', $content );
 }
 add_filter( 'the_content', 'groklink_filter_the_content', 999 );
+add_filter( 'render_block', 'groklink_filter_the_content', 999 );
 
 /**
  * Enqueues the JavaScript file for iframe filtering.
