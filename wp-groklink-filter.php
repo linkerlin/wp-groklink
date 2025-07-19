@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       WP GrokLink Filter
  * Description:       Filters out <grok> tags from page content and same-origin iframes.
- * Version:           1.1.2
+ * Version:           1.2.0
  * Author:            Steper Lin
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,14 +15,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Filters the content to remove <grok> tags and their content.
+ * Also handles HTML entity encoded versions like &lt;grok and &gt;
  *
  * @param string $content The content to filter.
  * @return string The filtered content.
  */
 function groklink_filter_the_content( $content ) {
-    // Regex to match a family of <grok...></grok...> tags and their content.
+    // Filter regular grok tags first
     $pattern = '/<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/is';
-    return preg_replace( $pattern, '', $content );
+    $filtered_content = preg_replace( $pattern, '', $content );
+    
+    // Then filter HTML entity encoded versions
+    $entity_pattern = '/&lt;grok(?::render|-[a-zA-Z0-9]+)?[^&]*&gt;.*?&lt;\/grok(?::render|-[a-zA-Z0-9]+)?&gt;/is';
+    $filtered_content = preg_replace( $entity_pattern, '', $filtered_content );
+    
+    return $filtered_content;
 }
 add_filter( 'the_content', 'groklink_filter_the_content', 999 );
 add_filter( 'render_block', 'groklink_filter_the_content', 999 );
@@ -35,7 +42,7 @@ function groklink_enqueue_scripts() {
         'grok-filter-script',
         plugin_dir_url( __FILE__ ) . 'js/grok-filter.js',
         array(),
-        '1.1.2',
+        '1.2.0',
         true // Load in the footer
     );
 }

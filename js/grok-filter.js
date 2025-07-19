@@ -1,13 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
     const filterGrokTags = (targetNode) => {
+        if (!targetNode || !targetNode.innerHTML) return false;
+        
         let content = targetNode.innerHTML;
+        let modified = false;
+        
+        // Filter regular grok tags
         const pattern = /<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/gis;
         if (pattern.test(content)) {
-            targetNode.innerHTML = content.replace(pattern, '');
-            console.log('Grok:render tags filtered in node:', targetNode.nodeName);
-            return true; // Tags were filtered
+            content = content.replace(pattern, '');
+            modified = true;
         }
-        return false; // No tags found
+        
+        // Filter HTML entity encoded grok tags
+        const entityPattern = /&lt;grok(?::render|-[a-zA-Z0-9]+)?[^&]*&gt;.*?&lt;\/grok(?::render|-[a-zA-Z0-9]+)?&gt;/gis;
+        if (entityPattern.test(content)) {
+            content = content.replace(entityPattern, '');
+            modified = true;
+        }
+        
+        if (modified) {
+            targetNode.innerHTML = content;
+            console.log('Grok tags filtered in node:', targetNode.nodeName);
+            return true;
+        }
+        return false;
     };
 
     // Initial filtering on the main document body

@@ -6,88 +6,117 @@
  * Author: AI Assistant
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly.
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
 }
 
 /**
  * Filters the content to remove <grok> tags and their content.
+ * Also handles HTML entity encoded versions like &lt;grok and &gt;
  *
  * @param string $content The content to filter.
  * @return string The filtered content.
  */
-function wpcode_groklink_filter_the_content( $content ) {
-    // Regex to match a family of <grok...></grok...> tags and their content.
+function groklink_filter_the_content($content) {
+    // Filter regular grok tags first
     $pattern = '/<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/is';
-    return preg_replace( $pattern, '', $content );
+    $filtered_content = preg_replace($pattern, '', $content);
+    
+    // Then filter HTML entity encoded versions
+    $entity_pattern = '/&lt;grok(?::render|-[a-zA-Z0-9]+)?[^&]*&gt;.*?&lt;\/grok(?::render|-[a-zA-Z0-9]+)?&gt;/is';
+    $filtered_content = preg_replace($entity_pattern, '', $filtered_content);
+    
+    return $filtered_content;
 }
-add_filter( 'the_content', 'wpcode_groklink_filter_the_content', 999 );
-add_filter( 'render_block', 'wpcode_groklink_filter_the_content', 999 );
+
+// Add filters for content and blocks
+add_filter('the_content', 'groklink_filter_the_content', 999);
+add_filter('render_block', 'groklink_filter_the_content', 999);
 
 /**
- * Embeds the JavaScript for iframe filtering directly into the footer.
+ * Enqueues the JavaScript file for dynamic filtering.
  */
-function wpcode_groklink_embed_scripts() {
-    ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const filterGrokTags = (targetNode) => {
-                let content = targetNode.innerHTML;
-                const pattern = /<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/gis;
-                if (pattern.test(content)) {
-                    targetNode.innerHTML = content.replace(pattern, '');
-                    console.log('Grok tags filtered in node:', targetNode.nodeName);
-                    return true; // Tags were filtered
-                }
-                return false; // No tags found
-            };
-
-            // Initial filtering on the main document body
-            if (filterGrokTags(document.body)) {
-                console.log('Initial filtering on main document body successful.');
-            } else {
-                console.log('No grok tags found in main document body on DOMContentLoaded.');
+function groklink_enqueue_scripts() {
+    // Inline JavaScript for WPCode compatibility
+    $js_code = "
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterGrokTags = (targetNode) => {
+            if (!targetNode || !targetNode.innerHTML) return false;
+            
+            let content = targetNode.innerHTML;
+            let modified = false;
+            
+            // Filter regular grok tags
+            const pattern = /<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/gis;
+            if (pattern.test(content)) {
+                content = content.replace(pattern, '');
+                modified = true;
             }
+            
+            // Filter HTML entity encoded grok tags
+            const entityPattern = /&lt;grok(?::render|-[a-zA-Z0-9]+)?[^&]*&gt;.*?&lt;\/grok(?::render|-[a-zA-Z0-9]+)?&gt;/gis;
+            if (entityPattern.test(content)) {
+                content = content.replace(entityPattern, '');
+                modified = true;
+            }
+            
+            if (modified) {
+                targetNode.innerHTML = content;
+                console.log('Grok tags filtered in node:', targetNode.nodeName);
+                return true;
+            }
+            return false;
+        };
 
-            // Observe changes in the document body for dynamically added content
-            const observer = new MutationObserver((mutationsList) => {
-                for (const mutation of mutationsList) {
-                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                        mutation.addedNodes.forEach(node => {
-                            // Only process element nodes and if they contain our tags
-                            if (node.nodeType === Node.ELEMENT_NODE) {
-                                if (filterGrokTags(node)) {
-                                    console.log('Grok tags filtered in dynamically added node:', node.nodeName);
-                                }
-                            }
-                        });
-                    }
-                }
-            });
+        // Initial filtering on the main document body
+        if (filterGrokTags(document.body)) {
+            console.log('Initial filtering on main document body successful.');
+        } else {
+            console.log('No grok tags found in main document body on DOMContentLoaded.');
+        }
 
-            // Start observing the document body for configured mutations
-            observer.observe(document.body, { childList: true, subtree: true });
-
-            // Handle iframes (cross-origin policy will still block, but keep the logic)
-            const iframes = document.querySelectorAll('iframe');
-            iframes.forEach(function(iframe) {
-                iframe.addEventListener('load', function() {
-                    try {
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        if (iframeDoc) {
-                            if (filterGrokTags(iframeDoc.body)) {
-                                console.log('Grok tags filtered in iframe:', iframe.src);
-                            } else {
-                                console.log('No grok tags found in iframe:', iframe.src);
+        // Observe changes in the document body for dynamically added content
+        const observer = new MutationObserver((mutationsList) => {
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(node => {
+                        // Only process element nodes and if they contain our tags
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (filterGrokTags(node)) {
+                                console.log('Grok tags filtered in dynamically added node:', node.nodeName);
                             }
                         }
-                    } catch (e) {
-                        console.warn('Could not access iframe content for filtering due to cross-origin policy:', iframe.src, e);
+                    });
+                }
+            }
+        });
+
+        // Start observing the document body for configured mutations
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Handle iframes (cross-origin policy will still block, but keep the logic)
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(function(iframe) {
+            iframe.addEventListener('load', function() {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (iframeDoc) {
+                        if (filterGrokTags(iframeDoc.body)) {
+                            console.log('Grok tags filtered in iframe:', iframe.src);
+                        } else {
+                            console.log('No grok tags found in iframe:', iframe.src);
+                        }
                     }
-                });
+                } catch (e) {
+                    console.warn('Could not access iframe content for filtering due to cross-origin policy:', iframe.src, e);
+                }
             });
         });
-    </script>
-    <?php
+    });
+    ";
+    
+    wp_add_inline_script('jquery', $js_code);
 }
-add_action( 'wp_footer', 'wpcode_groklink_embed_scripts' );
+add_action('wp_enqueue_scripts', 'groklink_enqueue_scripts');
+
