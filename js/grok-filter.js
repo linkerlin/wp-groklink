@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const filterGrokTags = (targetNode) => {
         let content = targetNode.innerHTML;
-        const pattern = /<grok:render[^>]*>.*?<\/grok:render>/gis;
+        const pattern = /<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/gis;
         if (pattern.test(content)) {
             targetNode.innerHTML = content.replace(pattern, '');
             console.log('Grok:render tags filtered in node:', targetNode.nodeName);

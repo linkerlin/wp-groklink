@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function groklink_filter_the_content( $content ) {
     // Regex to match a family of <grok...></grok...> tags and their content.
-    $pattern = '/<grok:render[^>]*>.*?<\/grok:render>/is';
+    $pattern = '/<grok(?::render|-[a-zA-Z0-9]+)?[^>]*>.*?<\/grok(?::render|-[a-zA-Z0-9]+)?>/is';
     return preg_replace( $pattern, '', $content );
 }
 add_filter( 'the_content', 'groklink_filter_the_content', 999 );
